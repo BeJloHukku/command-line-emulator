@@ -18,7 +18,7 @@ class Emulator:
         if vfs:
             self.vfs = vfs  # получаем vfs из параметра
         else:
-            self.vfs = os.path.expanduser("~\Desktop\KFG\Barinov\\vfs_data\.my_vfs\\vfs1.xml")
+            self.vfs = os.path.expanduser("~\Desktop\KFG\command-line-emulator-work\\vfs_data\.my_vfs\\vfs1.xml")
         self.start_scr = start_scr  # получаем стартовый скрипт из параметра
         self.current_dir = ''  # текущая директория
         self.virtual_env = {
@@ -166,6 +166,8 @@ class Emulator:
             self.who_com()
         elif comm == "date":
             self.date_com()
+        elif comm == "vfs-save":
+            self.vfs_save_com(arg)
         elif comm == "rm":
             self.rm_com(arg)
         elif comm == "pwd":
@@ -300,6 +302,76 @@ class Emulator:
                     self.text_out(f"rm: removed file '{target}' (in memory)")
                 else:
                     self.text_out(f"rm: cannot remove '{target}': No such file or directory")
+
+    def vfs_save_com(self, args):
+        if not args:
+            self.text_out("vfs-save: missing file path")
+            return
+            
+        save_path = args[0]
+        
+        if not self.vfs_tree:
+            self.text_out("VFS NOT FOUND")
+            return
+            
+        try:
+            new_vfs = ET.Element('vfs')
+            
+            dirs = set()
+            files = set()
+            
+            for path in self.vfs_files:
+                if path.endswith('/'):
+                    dirs.add(path.rstrip('/'))
+                else:
+                    files.add(path)
+            
+            dir_tree = {}
+            for dir_path in dirs:
+                parts = dir_path.split('/')
+                current = dir_tree
+                for part in parts:
+                    if part:
+                        if part not in current:
+                            current[part] = {}
+                        current = current[part]
+            
+            for file_path in files:
+                parts = file_path.split('/')
+                dir_parts = parts[:-1]
+                filename = parts[-1]
+                
+                current = dir_tree
+                for part in dir_parts:
+                    if part:
+                        if part not in current:
+                            current[part] = {}
+                        current = current[part]
+                
+                # Помечаем что в этой директории есть файлы
+                current[filename] = None
+            
+            # Преобразуем дерево в XML
+            self.build_xml(new_vfs, dir_tree)
+            
+            # Сохраняем в файл
+            tree = ET.ElementTree(new_vfs)
+            tree.write(save_path, encoding='utf-8', xml_declaration=True)
+            
+            self.text_out(f"VFS saved to: {save_path}")
+            
+        except Exception as e:
+            self.text_out(f"vfs-save error: {e}")
+
+    def build_xml(self, parent, tree):
+        """Рекурсивно строит XML из дерева"""
+        for name, children in sorted(tree.items()):
+            if children is None:
+                # Это файл
+                ET.SubElement(parent, 'file', name=name)
+            else:
+                dir_elem = ET.SubElement(parent, 'directory', name=name)
+                self._build_xml_from_tree(dir_elem, children)
 
     def start_script_run(self):
         with open(self.start_scr, 'r', encoding='utf-8') as f:  # открытие стартового скрипта

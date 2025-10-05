@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vfs>
+    <directory name="home">
+        <directory name="user">
+            <file name="file1.txt"/>
+            <file name="file2.txt"/>
+        </directory>
+    </directory>
+</vfs>
