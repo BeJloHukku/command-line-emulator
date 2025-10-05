@@ -304,7 +304,6 @@ class Emulator:
     def uptime_com(self):
         current_time = datetime.now()
         uptime = current_time - self.start_time
-        
         total_seconds = int(uptime.total_seconds())
         days = total_seconds // (24 * 3600)
         hours = (total_seconds % (24 * 3600)) // 3600
