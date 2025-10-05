@@ -159,8 +159,12 @@ class Emulator:
             self.uptime_com()
         elif comm == "tail":
             self.tail_com(arg)
+        elif comm == "touch":
+            self.touch_com(arg)
         elif comm == "head":
             self.head_com(arg)
+        elif comm == "chown":
+            self.chown_com(arg)
         else:
             self.text_out("command not found: " + comm)
 
@@ -296,7 +300,7 @@ class Emulator:
                 ET.SubElement(parent, 'file', name=name)
             else:
                 dir_elem = ET.SubElement(parent, 'directory', name=name)
-                self._build_xml_from_tree(dir_elem, children)
+                self.build_xml(dir_elem, children)
     def uptime_com(self):
         current_time = datetime.now()
         uptime = current_time - self.start_time
@@ -389,6 +393,53 @@ class Emulator:
         content = content.replace('\\n', '\n').replace('\\t', '\t')
         return content
     
+    def chown_com(self, args):
+        if len(args) < 2:
+            self.text_out("chown: missing operand")
+            self.text_out("Usage: chown OWNER FILE...")
+            return
+            
+        new_owner = args[0]
+        targets = args[1:]
+        
+        if not self.vfs_tree:
+            self.text_out("VFS NOT FOUND")
+            return
+            
+        success_count = 0
+        for target in targets:
+            target_path = self.current_dir + target
+            
+            if target_path in self.vfs_files or any(name.startswith(target_path + '/') for name in self.vfs_files):
+                self.text_out(f"chown: changing ownership of '{target}' to '{new_owner}' (in memory)")
+                success_count += 1
+            else:
+                self.text_out(f"chown: cannot access '{target}': No such file or directory")
+        
+        if success_count > 0:
+            self.text_out(f"chown: changed ownership of {success_count} item(s)")
+
+    def touch_com(self, args):
+        if not args:
+            self.text_out("touch: missing file operand")
+            return
+            
+        if not self.vfs_tree:
+            self.text_out("VFS NOT FOUND")
+            return
+            
+        success_count = 0
+        for filename in args:
+            file_path = self.current_dir + filename
+            
+            if file_path in self.vfs_files:
+                self.text_out(f"touch: updated timestamp of '{filename}' (in memory)")
+                success_count += 1
+            else:
+                self.vfs_files.append(file_path)
+                self.text_out(f"touch: created file '{filename}' (in memory)")
+                success_count += 1
+
 if __name__ == "__main__":
     import argparse
 

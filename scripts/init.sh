@@ -1,19 +1,14 @@
 #Это стартовый скрипт
 
-
-
-
-#echo "Привет!"
-
-#Пример ls
 ls
+cd home
+cd user
+unknown_command
+head file1.txt
+tail file1.txt
+uptime
+vfs-save saved.xml
+touch newFile.txt
+chown admin newFile.txt
 
-#Пример cd
-#cd fold1
 
-#Неизвестная команда
-ddd
-
-#Обработка ошибок для cd
-#cd fold3
-#cd
