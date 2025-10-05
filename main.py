@@ -8,38 +8,37 @@ from pathlib import Path
 import re
 
 def get_names():
-    username = os.getlogin()  # получение имени пользователя
-    hostname = platform.node()  # получение имени хоста
+    username = os.getlogin()
+    hostname = platform.node()
     return username, hostname
 
 class Emulator:
     def __init__(self, root, vfs=None, start_scr=None):
         self.root = root
+        self.start_time = datetime.now()
         if vfs:
-            self.vfs = vfs  # получаем vfs из параметра
+            self.vfs = vfs
         else:
             self.vfs = os.path.expanduser("~\Desktop\KFG\command-line-emulator-work\\vfs_data\.my_vfs\\vfs1.xml")
-        self.start_scr = start_scr  # получаем стартовый скрипт из параметра
-        self.current_dir = ''  # текущая директория
+        self.start_scr = start_scr
+        self.current_dir = ''
         self.virtual_env = {
             'HOME': '/',
             'PWD': '/',
         }
-        # вывод параметров
         print("Параметры эмулятора")
         print("VFS - " + self.vfs)
         print("Start Script - " + (self.start_scr if self.start_scr else "None"))
         
-        self.username, self.hostname = get_names()  # получаем имя пользователя и хоста
-        self.root.title("Эмулятор - " + self.username + "@" + self.hostname)  # указываем их в заголовке окна
+        self.username, self.hostname = get_names()
+        self.root.title("Эмулятор - " + self.username + "@" + self.hostname)
         
-        # Создание интерфейса
         self.input_frame = tk.Frame(root)
         self.input_frame.pack(pady=10, padx=10, fill=tk.X)
         
-        self.command_entry = tk.Entry(self.input_frame, width=80)  # поле для ввода команд
+        self.command_entry = tk.Entry(self.input_frame, width=80)
         self.command_entry.pack(side=tk.RIGHT, fill=tk.X, expand=True)
-        self.command_entry.bind("<Return>", self.read_com)  # Привязка Enter к обработке
+        self.command_entry.bind("<Return>", self.read_com)
         
         self.prompt_label = tk.Label(self.input_frame, text="Введите команду", width=20)
         self.prompt_label.pack()
@@ -50,30 +49,28 @@ class Emulator:
         self.enter_but = tk.Button(self.but_frame, text="Выполнить команду", width=20, pady=5, command=self.read_com)  # кнопка для ввода команды
         self.enter_but.pack(side=tk.LEFT, fill=tk.BOTH)
         
-        self.output_frame = tk.Frame(root)  # окно для вывода сообщений программы
+        self.output_frame = tk.Frame(root)
         self.output_frame.pack(pady=10, padx=10, fill=tk.BOTH, expand=True)
         
         self.output_text = tk.Text(self.output_frame)
         self.output_text.pack(fill=tk.BOTH, expand=True)
         
-        # Инициализация VFS и скрипта
         self.start_vfs()
         if self.start_scr and os.path.exists(self.start_scr):
-            self.start_script_run()  # если в системе есть стартовый скрипт, запускаем его
+            self.start_script_run()
         elif self.start_scr:
-            self.text_out(f"error: startup script not found: {self.start_scr}")  # иначе выводится ошибка
+            self.text_out(f"error: startup script not found: {self.start_scr}")
 
     def expand_vars(self, text):
         """Заменяет $VAR и ${VAR} на значения из VFS"""
         def replace(match):
             var_name = match.group(1) or match.group(2)
-            return self.virtual_env.get(var_name, '')  # Только виртуальные переменные
+            return self.virtual_env.get(var_name, '')
         
         return re.sub(r'\$(\w+)|\$\{(\w+)\}', replace, text)
     
 
     def start_vfs(self):
-        """Загрузка виртуальной файловой системы из XML"""
         try:
             if not os.path.exists(self.vfs):
                 self.text_out(f"VFS NOT FOUND: {self.vfs}")
@@ -81,11 +78,9 @@ class Emulator:
                 self.vfs_files = []
                 return
                 
-            # Парсим XML файл
             self.vfs_tree = ET.parse(self.vfs)
             self.vfs_root = self.vfs_tree.getroot()
             
-            # Собираем все файлы и директории в плоский список
             self.vfs_files = []
             self._collect_files(self.vfs_root, "")
             
@@ -100,20 +95,18 @@ class Emulator:
             self.text_out("VFS NOT FOUND")
 
     def _collect_files(self, element, current_path):
-        """Рекурсивный сбор всех файлов и папок из XML"""
         for child in element:
             if child.tag == 'directory':
                 dir_name = child.get('name', '')
                 dir_path = current_path + dir_name + '/'
-                self.vfs_files.append(dir_path)  # добавляем саму директорию
-                self._collect_files(child, dir_path)  # рекурсивно обходим содержимое
+                self.vfs_files.append(dir_path)
+                self._collect_files(child, dir_path)
             elif child.tag == 'file':
                 file_name = child.get('name', '')
                 file_path = current_path + file_name
                 self.vfs_files.append(file_path)
 
     def _find_element(self, path):
-        """Поиск элемента в XML по пути"""
         if not self.vfs_tree:
             return None
             
@@ -134,20 +127,19 @@ class Emulator:
         return current
 
     def text_out(self, s):
-        self.output_text.insert(tk.END, s + "\n")  # функция вывода результатов на экран
+        self.output_text.insert(tk.END, s + "\n")
         self.output_text.see(tk.END)
 
-    def read_com(self, event=None, text=None):  # функция обработки команд
-        if text is None:  # если не передаётся параметр извне, то получаем команду из поля ввода
+    def read_com(self, event=None, text=None):
+        if text is None:
             text = self.command_entry.get()
-            self.command_entry.delete(0, tk.END)  # очищаем поле ввода
+            self.command_entry.delete(0, tk.END)
         if not text:
             return
-        self.text_out(self.username + "@" + self.hostname + "$ " + text)  # дублируем команду в поле вывода
+        self.text_out(self.username + "@" + self.hostname + "$ " + text)  
         
         text = self.expand_vars(text)
 
-        # парсер
         parts = text.split()
         if not parts:
             return
@@ -155,28 +147,25 @@ class Emulator:
         comm = parts[0]
         arg = parts[1:] if len(parts) > 1 else []
         
-        # обработка команд
         if comm == "ls":
             self.ls_com()
         elif comm == "cd":
             self.cd_com(arg)
         elif comm == "exit":
             self.exit_com()
-        elif comm == "who":
-            self.who_com()
-        elif comm == "date":
-            self.date_com()
         elif comm == "vfs-save":
             self.vfs_save_com(arg)
-        elif comm == "rm":
-            self.rm_com(arg)
-        elif comm == "pwd":
-            self.pwd_com()
+        elif comm == "uptime":
+            self.uptime_com()
+        elif comm == "tail":
+            self.tail_com(arg)
+        elif comm == "head":
+            self.head_com(arg)
         else:
             self.text_out("command not found: " + comm)
 
     def exit_com(self):
-        self.root.destroy()  # выход из программы
+        self.root.destroy()
 
     def pwd_com(self):
         """Показать текущую директорию"""
@@ -188,13 +177,11 @@ class Emulator:
             self.text_out("VFS NOT FOUND")
             return
             
-        # Получаем файлы в текущей директории
         files_in_dir = []
         for f in self.vfs_files:
             if f.startswith(self.current_dir):
-                # Получаем относительный путь
                 relative = f[len(self.current_dir):]
-                if relative:  # пропускаем саму директорию
+                if relative:
                     first_part = relative.split('/')[0]
                     if first_part and first_part not in files_in_dir:
                         files_in_dir.append(first_part)
@@ -202,7 +189,7 @@ class Emulator:
         if files_in_dir:
             self.text_out("\n".join(sorted(files_in_dir)))
         else:
-            self.text_out("")  # пустой вывод для пустой директории
+            self.text_out("")
 
     def cd_com(self, args):
         if not args:
@@ -214,12 +201,12 @@ class Emulator:
             self.text_out("VFS NOT FOUND")
             return
 
-        if target_dir == '/':  # переход в корень
+        if target_dir == '/':
             self.current_dir = ''
             self.virtual_env['PWD'] = '/'
             self.text_out("Changed directory to /")
             return
-        elif target_dir == '..':  # переход на уровень выше
+        elif target_dir == '..':
             if self.current_dir:
                 parts = self.current_dir.rstrip('/').split('/')
                 if parts:
@@ -233,12 +220,10 @@ class Emulator:
             self.virtual_env['PWD'] = self.current_dir if self.current_dir else '/'
             return
         
-        # Проверяем существование целевой директории
         new_path = self.current_dir + target_dir
         if not new_path.endswith('/'):
             new_path += '/'
-            
-        # Проверяем, есть ли файлы в этой директории
+
         dir_exists = any(name.startswith(new_path) for name in self.vfs_files)
         if dir_exists:
             self.current_dir = new_path
@@ -247,61 +232,6 @@ class Emulator:
         else:
             self.text_out(f"cd: {target_dir}: No such file or directory")
 
-    def who_com(self):
-        username = os.getlogin()  # получаем имя пользователя
-        self.text_out(f"Username: {username}")
-
-    def date_com(self):
-        now = datetime.now()  # получаем дату и время
-        # Форматируем в стиле Linux date: "Wed Sep 10 12:34:56 EEST 2025"
-        formatted_date = now.strftime("%a %b %d %H:%M:%S %Z %Y")
-        self.text_out(formatted_date)
-
-    def rm_com(self, args):
-        if not args:
-            self.text_out("rm: missing operand")
-            return
-        if not self.vfs_tree:
-            self.text_out("VFS NOT FOUND")
-            return
-            
-        recursive = False
-        targets = args
-        
-        # Обработка флага -r
-        if args[0] == "-r":
-            recursive = True
-            targets = args[1:]
-            
-        if not targets:
-            self.text_out("rm: missing operand")
-            return
-            
-        for target in targets:
-            target_path = self.current_dir + target
-            if target_path.endswith('/'):
-                target_path = target_path.rstrip('/')
-                
-            # Проверяем, является ли цель директорией
-            is_dir = any(name.startswith(target_path + '/') and name != target_path for name in self.vfs_files)
-            
-            if is_dir and not recursive:
-                self.text_out(f"rm: cannot remove '{target}': Is a directory")
-                continue
-                
-            # Удаляем из списка файлов (в памяти)
-            if is_dir:
-                # Удаляем директорию и все её содержимое
-                self.vfs_files = [name for name in self.vfs_files 
-                                if not name.startswith(target_path + '/') and name != target_path]
-                self.text_out(f"rm: removed directory '{target}' (in memory)")
-            else:
-                # Удаляем файл
-                if target_path in self.vfs_files:
-                    self.vfs_files.remove(target_path)
-                    self.text_out(f"rm: removed file '{target}' (in memory)")
-                else:
-                    self.text_out(f"rm: cannot remove '{target}': No such file or directory")
 
     def vfs_save_com(self, args):
         if not args:
@@ -348,13 +278,10 @@ class Emulator:
                             current[part] = {}
                         current = current[part]
                 
-                # Помечаем что в этой директории есть файлы
                 current[filename] = None
             
-            # Преобразуем дерево в XML
             self.build_xml(new_vfs, dir_tree)
             
-            # Сохраняем в файл
             tree = ET.ElementTree(new_vfs)
             tree.write(save_path, encoding='utf-8', xml_declaration=True)
             
@@ -364,27 +291,104 @@ class Emulator:
             self.text_out(f"vfs-save error: {e}")
 
     def build_xml(self, parent, tree):
-        """Рекурсивно строит XML из дерева"""
         for name, children in sorted(tree.items()):
             if children is None:
-                # Это файл
                 ET.SubElement(parent, 'file', name=name)
             else:
                 dir_elem = ET.SubElement(parent, 'directory', name=name)
                 self._build_xml_from_tree(dir_elem, children)
+    def uptime_com(self):
+        current_time = datetime.now()
+        uptime = current_time - self.start_time
+        
+        total_seconds = int(uptime.total_seconds())
+        days = total_seconds // (24 * 3600)
+        hours = (total_seconds % (24 * 3600)) // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+        
+        if days > 0:
+            uptime_str = f"{days} days, {hours:02d}:{minutes:02d}:{seconds:02d}"
+        else:
+            uptime_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        
+        self.text_out(f"up {uptime_str}")
+        self.text_out(f"started: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
 
     def start_script_run(self):
-        with open(self.start_scr, 'r', encoding='utf-8') as f:  # открытие стартового скрипта
-            for line_num, line in enumerate(f, 1):  # построчно читаем команды
+        with open(self.start_scr, 'r', encoding='utf-8') as f:  
+            for line_num, line in enumerate(f, 1):  
                 stripped = line.strip()
-                if not stripped or stripped[0] == '#':  # если строка пустая или содержит комментарий, то переходим к следующей
+                if not stripped or stripped[0] == '#': 
                     continue
                 try:
-                    self.read_com(text=stripped)  # в обработчик команд отправляем прочитанную команду
+                    self.read_com(text=stripped)  
                 except Exception as e:
                     self.text_out(f"error in script: {self.start_scr} at line {line_num}: {str(e)}")
                     break
 
+    def head_com(self, args):
+        """Показывает первые 10 строк файла"""
+        if not args:
+            self.text_out("head: missing file operand")
+            return
+            
+        filename = args[0]
+        lines = 10
+        
+        file_path = self.current_dir + filename
+        
+        if not self.vfs_tree:
+            self.text_out("VFS NOT FOUND")
+            return
+            
+        file_element = self._find_element(file_path)
+        
+        if file_element is None or file_element.tag != 'file':
+            self.text_out(f"head: {filename}: No such file")
+            return
+            
+        content = self.get_file_content(file_element, file_path)
+        
+        content_lines = content.split('\n')
+        for i in range(min(lines, len(content_lines))):
+            self.text_out(content_lines[i])
+    
+    def tail_com(self, args):
+        if not args:
+            self.text_out("tail: missing file operand")
+            return
+            
+        filename = args[0]
+        lines = 10
+        
+        file_path = self.current_dir + filename
+        
+        if not self.vfs_tree:
+            self.text_out("VFS NOT FOUND")
+            return
+            
+        file_element = self._find_element(file_path)
+        
+        if file_element is None or file_element.tag != 'file':
+            self.text_out(f"tail: {filename}: No such file")
+            return
+            
+        content = self.get_file_content(file_element, file_path)
+        
+        content_lines = content.split('\n')
+        start_index = max(0, len(content_lines) - lines)
+        
+        for i in range(start_index, len(content_lines)):
+            self.text_out(content_lines[i])
+    
+    def get_file_content(self, file_element, file_path):
+        content = file_element.get('content', '')
+        if not content:
+            content = "Nothing"
+        content = content.replace('\\n', '\n').replace('\\t', '\t')
+        return content
+    
 if __name__ == "__main__":
     import argparse
 

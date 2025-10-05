@@ -2,7 +2,8 @@
 <vfs>
     <directory name="home">
         <directory name="user">
-            <file name="file1.txt"/>
+            <file name="file1.txt" content="Line 1: 1\nLine2: 2\nLine3: 3\nLine4: 4\nLine5: 5
+            \nLine6: 6\nLine7: 7\nLine8: 8\nLine9: 9\nLine10: 10\nLine11: 11"/>
             <file name="file2.txt"/>
         </directory>
     </directory>
